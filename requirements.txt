@@ -1,0 +1,15 @@
+python-dotenv
+langchain==0.2.15
+langchain-openai==0.1.23
+langchain-community==0.2.15
+langchain-core
+langgraph==0.0.69
+langchain-chroma
+chromadb
+pymupdf
+tavily-python
+requests==2.32.3
+langchain-text-splitters
+beautifulsoup4==4.12.3
+reportlab
+pypandoc
