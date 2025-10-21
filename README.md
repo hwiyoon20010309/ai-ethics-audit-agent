@@ -62,16 +62,19 @@ LangGraph 기반 멀티 에이전트 시스템을 통해 특정 AI 서비스 유
 ---
 
 ## 🧭 Architecture
+## 🧭 Architecture
 ```mermaid
 graph TD
-A[사용자 입력: AI 서비스 설명] --> B[Service Analysis Agent]
-B --> C[Ethical Risk Diagnosis Agent]
-C --> D[Improvement Suggestion Agent]
-D --> E[Report Generation Agent]
-E --> F[Output: Ethics Risk Report (PDF/MD)]
+A["User Input - AI Service Description"] --> B["Service Analysis Agent"]
+B --> C["Ethical Risk Diagnosis Agent"]
+C --> D["Improvement Suggestion Agent"]
+D --> E["Report Generation Agent"]
+E --> F["Output - Ethics Risk Report (PDF or MD)"]
 ```
 
 ## Directory Structure
+```markdown
+<pre><code>
 ai-ethics-audit-agent/
 ├── agents/
 │   ├── service_analysis.py
@@ -83,8 +86,8 @@ ai-ethics-audit-agent/
 │   ├── ethical_risk_prompt.txt
 │   ├── improvement_prompt.txt
 │   └── report_prompt.txt
-├── data/                  # AI 윤리 가이드라인 문서 (EU, OECD, UNESCO)
-├── outputs/               # 리포트 결과 저장 (Markdown/PDF)
-├── app.py                 # 실행 스크립트
-├── requirements.txt
+├── outputs/
 └── README.md
+</code></pre>
+```
+
