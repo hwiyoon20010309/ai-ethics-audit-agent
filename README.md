@@ -9,46 +9,58 @@ LangGraph 기반 멀티 에이전트 시스템을 통해 특정 AI 서비스 유
 
 ## 📘 Overview
 
-- **Objective:**  
-  특정 AI 서비스 유형을 대상으로 윤리 리스크(편향성, 프라이버시 침해, 투명성 부족 등)를 분석하고  
-  EU AI Act, OECD, UNESCO 기준을 적용하여 개선 권고안 및 리포트를 자동 생성하는 시스템 개발
+- **Objective**  
+  AI 서비스(생성형, 예측형, 추천형)를 대상으로  
+  윤리 리스크(편향성, 프라이버시 침해, 투명성 부족 등)를 진단하고  
+  국제 기준 기반의 **리스크 스코어링 + 개선안 + 리포트 자동화**를 수행합니다.
 
-- **Methods:**  
-  Prompt Engineering, Multi-Agent Workflow (LangGraph), Rule-based Ethical Scoring  
+- **Methods**  
+  - Multi-Agent Workflow (LangGraph)  
+  - RAG (Retrieval-Augmented Generation)  
+  - Prompt Engineering & Context-Aware Reasoning  
 
-- **Tools:**  
-  LangGraph, LangChain, OpenAI GPT-4o-mini, Pandas, ReportLab
+- **Tools & Frameworks**  
+  LangGraph · LangChain · GPT-4o-mini · ChromaDB · ReportLab · Python 3.11
 
 ---
 
 ## ⚙️ Features
 
-- 🤖 **서비스 분석 자동화** — AI 서비스의 목적, 입력 데이터, 주요 기능을 분석  
-- ⚖️ **윤리 리스크 진단** — 편향성, 프라이버시, 투명성 등 10대 윤리 항목별 평가  
-- 💡 **개선 권고안 제안** — 국제 AI 윤리 가이드라인(EU, OECD, UNESCO) 기반 개선 방향 제시  
-- 📊 **자동 리포트 생성** — 평가 결과를 Markdown 및 PDF 형태로 리포트화  
+| 기능 | 설명 |
+|------|------|
+| 🤖 **자동 서비스 분석** | 입력된 설명으로부터 AI 유형 및 구조 자동 판별 |
+| ⚖️ **윤리 리스크 진단** | 10대 항목별 리스크 점수 및 코멘트 생성 |
+| 📚 **RAG 기반 정책 검증** | EU, OECD, UNESCO 문서 근거를 기반으로 판단 |
+| 💡 **개선 권고안 생성** | 가이드라인 조항 기반 구체적 권고 제시 |
+| 📊 **리포트 자동화** | Markdown / PDF 형태의 리포트 자동 출력 |
 
 ---
 
 ## 🧩 Tech Stack 
 
-| Category   | Details |
-|-------------|----------|
-| **Framework** | LangGraph, LangChain, Python 3.11 |
-| **LLM** | GPT-4o-mini via OpenAI API |
-| **Retrieval** | FAISS, Chroma |
-| **Embedding** | OpenAIEmbedding (text-embedding-3-small) |
+| Category | Details |
+|-----------|----------|
+| **Framework** | LangGraph, LangChain |
+| **LLM** | GPT-4o-mini (OpenAI) |
+| **Vector DB** | Chroma (FAISS backend) |
+| **Embedding** | text-embedding-3-small |
 | **Visualization** | Mermaid, Graphviz |
-| **Report** | ReportLab, pypandoc |
+| **Report Engine** | ReportLab, Pandas |
+| **Environment** | Python 3.11, .env(OpenAI API Key) |
 
 ---
 
 ## 🧠 Agents
  
-- **Service Analysis Agent** : AI 서비스 개요 및 기능 분석  
-- **Ethical Risk Diagnosis Agent** : 윤리 기준(EU AI Act, OECD, UNESCO)에 따른 리스크 평가  
-- **Improvement Suggestion Agent** : 항목별 개선 방향 제시  
-- **Report Generation Agent** : 평가 결과 및 개선안 기반 리포트 작성 (Markdown/PDF)
+| 단계 | Agent | 핵심 역할 | 주요 입력 | 주요 출력 |
+|------|--------|------------|-------------|-------------|
+| ① | **TypeClassifierAgent** | AI 서비스 유형 자동 분류 | 서비스 설명 | `service_info["type"]` |
+| ② | **ServiceAnalyzerAgent** | 목적, 입력·출력, 구조 분석 | `service_info` | `service_profile` |
+| ③ | **RiskFactorExtractor** | 잠재적 윤리 리스크 요인 추출 | `service_profile` | `risk_factors` |
+| ④ | **PolicyRetriever (RAG)** | 국제 가이드라인 근거 검색 | `risk_factors` | `policy_context` |
+| ⑤ | **RiskEvaluator** | 항목별 점수화 및 평가 코멘트 | `policy_context` | `risk_assessment` |
+| ⑥ | **RecommendationGenerator** | 개선안 생성 + 관련 조항 연결 | `risk_assessment` | `recommendations` |
+| ⑦ | **ReportBuilder** | PDF/Markdown 리포트 생성 | `recommendations` | `report_final` |
 
 ---
 
@@ -74,11 +86,13 @@ LangGraph의 State는 각 에이전트 간 데이터를 전달하는 핵심 구�
 ```mermaid
 stateDiagram-v2
 [*] --> service_info : User Input
-service_info --> service_profile : Service Analysis Agent
-service_profile --> risk_assessment : Ethical Risk Diagnosis Agent
-risk_assessment --> recommendations : Improvement Suggestion Agent
-recommendations --> report_final : Report Generation Agent
-report_final --> [*] : Output (Markdown/PDF)
+service_info --> service_profile : TypeClassifierAgent
+service_profile --> risk_factors : RiskFactorExtractor
+risk_factors --> policy_context : PolicyRetriever
+policy_context --> risk_assessment : RiskEvaluator
+risk_assessment --> recommendations : RecommendationGenerator
+recommendations --> report_final : ReportBuilder
+report_final --> [*] : Output (MD/PDF)
 ```
 
 ---
@@ -86,29 +100,62 @@ report_final --> [*] : Output (Markdown/PDF)
 ## 🧭 Architecture
 ```mermaid
 graph TD
-A["User Input - AI Service Description"] --> B["Service Analysis Agent"]
-B --> C["Ethical Risk Diagnosis Agent"]
-C --> D["Improvement Suggestion Agent"]
-D --> E["Report Generation Agent"]
-E --> F["Output - Ethics Risk Report (PDF or MD)"]
+A["User Input"] --> B["TypeClassifierAgent"]
+B --> C["ServiceAnalyzerAgent"]
+C --> D["RiskFactorExtractor"]
+D --> E["PolicyRetriever (RAG)"]
+E --> F["RiskEvaluator"]
+
+%% Conditional Branch
+F -->|리스크 ≥ 3 (Acceptable)| G["RecommendationGenerator"]
+F -->|리스크 < 3 (High Risk)| E["PolicyRetriever (RAG) 🔁 재검색"]
+E -->|근거 부족| C["ServiceAnalyzerAgent 🔁 서비스 구조 재분석"]
+
+G --> H["ReportBuilder"]
+H --> I["Output (MD / PDF)"]
 ```
+---
 
 ## Directory Structure
 ```markdown
 <pre><code>
 ai-ethics-audit-agent/
 ├── agents/
+│   ├── type_classifier.py
 │   ├── service_analysis.py
-│   ├── ethical_risk_diagnosis.py
-│   ├── improvement_suggestion.py
-│   └── report_generation.py
-├── prompts/
-│   ├── service_analysis_prompt.txt
-│   ├── ethical_risk_prompt.txt
-│   ├── improvement_prompt.txt
-│   └── report_prompt.txt
+│   ├── risk_factor_extractor.py
+│   ├── policy_retriever.py
+│   ├── risk_evaluator.py
+│   ├── recommendation_generator.py
+│   ├── report_builder.py
+│   └── rag_utils.py
+├── tools.py
+├── data/
+│   ├── EU_AI_Act_Summary.txt
+│   ├── OECD_AI_Principles.txt
+│   └── UNESCO_AI_Ethics.txt
 ├── outputs/
-└── README.md
+│   ├── ethics_audit_report.md
+│   └── ethics_audit_report.pdf
+├── prompts/
+├── .env
+├── requirements.txt
+└── app.py
+
 </code></pre>
 ```
 
+---
+## 🔧 Tool Function Definition
+
+LangGraph 각 에이전트는 내부적으로 다음의 **도구 함수(tool function)** 를 호출합니다.
+
+| Tool 이름 | 역할 | 사용 Agent | 설명 |
+|------------|-------|-------------|------|
+| `get_llm()` | GPT-4o-mini 모델 호출 | 모든 Agent | OpenAI API로 질의 수행 |
+| `ensure_retriever()` | Chroma 벡터DB 구축/로드 | PolicyRetriever | `/data` 문서 임베딩 후 RAG 검색 |
+| `search_guideline(term)` | 특정 항목 관련 조항 검색 | RiskEvaluator / RecommendationGenerator | “Transparency 관련 조항” 등 검색 |
+| `score_ethics(criteria, context)` | 윤리 항목 점수 계산 | RiskEvaluator | 근거(Context) 기반 점수 산정 |
+| `generate_recommendations(assessment, context)` | 개선안 생성 | RecommendationGenerator | 리스크 기반 권고 생성 |
+| `generate_report_md(summary)` | Markdown 리포트 생성 | ReportBuilder | 평가 결과 및 권고안 정리 |
+| `generate_report_pdf(summary)` | PDF 리포트 생성 | ReportBuilder | ReportLab으로 시각화 리포트 생성 |
