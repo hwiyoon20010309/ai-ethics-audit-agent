@@ -100,19 +100,21 @@ report_final --> [*] : Output (MD/PDF)
 ## 🧭 Architecture
 ```mermaid
 graph TD
-A["User Input"] --> B["TypeClassifierAgent"]
-B --> C["ServiceAnalyzerAgent"]
-C --> D["RiskFactorExtractor"]
-D --> E["PolicyRetriever (RAG)"]
-E --> F["RiskEvaluator"]
+A["사용자 입력 (AI 서비스 설명)"] --> B["유형 분류 에이전트"]
+B --> C["서비스 분석 에이전트"]
+C --> D["윤리 리스크 요소 추출기"]
+D --> E["정책 검색 에이전트 (RAG)"]
+E --> F["윤리 리스크 평가 에이전트"]
 
-%% Conditional Branch
-F -->|리스크 ≥ 3 (Acceptable)| G["RecommendationGenerator"]
-F -->|리스크 < 3 (High Risk)| E["PolicyRetriever (RAG) 🔁 재검색"]
-E -->|근거 부족| C["ServiceAnalyzerAgent 🔁 서비스 구조 재분석"]
+%% 조건 분기
+F -->|리스크 점수 >= 3 : 양호| G["개선 권고안 생성 에이전트"]
+F -->|리스크 점수 < 3 : 재검색| E["정책 검색 에이전트 (RAG) 🔁"]
+E -->|근거 부족 : 재분석 필요| C["서비스 분석 에이전트 🔁"]
 
-G --> H["ReportBuilder"]
-H --> I["Output (MD / PDF)"]
+G --> H["리포트 생성 에이전트"]
+H --> I["출력 (Markdown / PDF 보고서)"]
+
+
 ```
 ---
 
