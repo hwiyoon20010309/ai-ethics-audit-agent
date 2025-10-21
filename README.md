@@ -1,4 +1,5 @@
 # 🧭 AI 윤리성 리스크 진단 (AI Ethics Audit Agent)
+## ✅ Summary
 
 본 프로젝트는 AI 윤리성 리스크 진단 에이전트(AI Ethics Audit Agent)를 설계하고 구현한 실습 프로젝트입니다.  
 LangGraph 기반 멀티 에이전트 시스템을 통해 특정 AI 서비스 유형(생성형 AI, 추천형 AI, 예측형 AI)을 진단하고,  
@@ -51,17 +52,37 @@ LangGraph 기반 멀티 에이전트 시스템을 통해 특정 AI 서비스 유
 
 ---
 
-## 🧮 State 
-
-- `service_info` : 사용자가 입력한 AI 서비스 설명 및 기능 요약  
-- `risk_assessment` : 윤리 항목별 리스크 평가 결과 (점수/코멘트)  
-- `recommendations` : 개선 권고안 리스트  
-- `report_summary` : 요약 리포트 (결과 요약 문단)  
-- `report_final` : 최종 리포트(Markdown 또는 PDF 파일)
+### 🧮 State Definition
+LangGraph의 State는 각 에이전트 간 데이터를 전달하는 핵심 구조입니다.  
+아래는 본 프로젝트의 주요 State 스키마와 데이터 흐름 정의입니다.
 
 ---
 
-## 🧭 Architecture
+### 📦 State Schema
+
+| State Key | Data Type | 생성 Agent | 사용 Agent | 설명 |
+|------------|------------|-------------|-------------|-------------|
+| `service_info` | dict | User Input | Service Analysis | 사용자가 입력한 AI 서비스 기본 정보 (유형, 목적, 사용 데이터 등) |
+| `service_profile` | dict | Service Analysis | Ethical Risk Diagnosis | 분석된 서비스 구조 요약 및 데이터 처리 특성 |
+| `risk_assessment` | dict | Ethical Risk Diagnosis | Improvement Suggestion | 윤리 항목별 점수(1~5), 평가 코멘트, 리스크 수준 포함 |
+| `recommendations` | dict | Improvement Suggestion | Report Generation | 항목별 개선 권고안 및 관련 가이드라인(EU/OECD/UNESCO) |
+| `report_summary` | str | Report Generation | Report Generation | 주요 리스크 및 개선 요약문 |
+| `report_final` | file (md/pdf) | Report Generation | Output | 최종 리포트 결과물 (Markdown, PDF) |
+
+---
+### 📦 State Transition Diagram
+```mermaid
+stateDiagram-v2
+[*] --> service_info : User Input
+service_info --> service_profile : Service Analysis Agent
+service_profile --> risk_assessment : Ethical Risk Diagnosis Agent
+risk_assessment --> recommendations : Improvement Suggestion Agent
+recommendations --> report_final : Report Generation Agent
+report_final --> [*] : Output (Markdown/PDF)
+```
+
+---
+
 ## 🧭 Architecture
 ```mermaid
 graph TD
