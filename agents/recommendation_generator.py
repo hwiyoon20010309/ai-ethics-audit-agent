@@ -20,34 +20,42 @@ def _guideline_hint(category: str) -> str:
     }
     return mapping.get(category, "OECD/UNESCO General Principle")
 
-def generate_recommendations(assessment: dict) -> dict:
+def generate_recommendations(risk_assessment, guideline_contexts=None):
     """
-    각 항목별 리스크 수준과 실행지침 텍스트 반환
+    윤리 리스크 평가 결과 및 RAG 근거 문맥을 기반으로 개선안 생성
     """
-    recs = {}
-    for cat, info in assessment["scores"].items():
-        s = int(info.get("score", 3))
-        level = _level(s)
+    # RAG 문맥 문자열화
+    if isinstance(guideline_contexts, list):
+        context_text = "\n\n".join(
+            [getattr(doc, "page_content", str(doc)) for doc in guideline_contexts]
+        )
+    else:
+        context_text = str(guideline_contexts or "")
 
-        # 간단 규칙 기반 샘플 권고안
-        actions = []
-        if s >= 4:
-            actions = [
-                "운영정책 문서화 및 대외 공개",
-                "데이터 품질/편향 점검 절차 도입 및 감사 로그 저장",
-                "고위험 플로우에 인간 검토 게이트 추가"
-            ]
-        elif s == 3:
-            actions = [
-                "월간 리스크 모니터링 및 샘플 검증",
-                "고객 공지/FAQ에 관련 항목 추가",
-            ]
-        else:
-            actions = ["분기별 셀프 체크 및 변화 감시"]
+    from openai import OpenAI
+    import os
+    from dotenv import load_dotenv
+    load_dotenv()
 
-        recs[cat] = {
-            "risk_level": level,
-            "actions": actions,
-            "guideline": _guideline_hint(cat)
-        }
-    return recs
+    client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
+    base_prompt = (
+        "다음은 AI 서비스의 윤리 리스크 평가 결과입니다.\n"
+        "각 항목별로 구체적인 개선 권고안을 제시하세요.\n"
+        "가능하다면 EU/OECD/UNESCO 가이드라인의 원칙과 연결하여 설명하세요.\n"
+    )
+
+    prompt = (
+        f"{base_prompt}\n\n"
+        f"=== 리스크 평가 ===\n{risk_assessment}\n\n"
+        f"=== 참고 문맥 ===\n{context_text[:3000]}"
+    )
+
+    response = client.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=[{"role": "user", "content": prompt}],
+        temperature=0.4
+    )
+
+    return response.choices[0].message.content
+
