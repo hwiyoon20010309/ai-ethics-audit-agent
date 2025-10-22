@@ -8,7 +8,7 @@ from reportlab.lib.styles import getSampleStyleSheet
 def _pp(d):  # pretty print
     return json.dumps(d, ensure_ascii=False, indent=2)
 
-def build_report(service_desc: str, service_type: str, assessment: dict, recommendations: dict):
+def generate_report(service_desc: str, service_type: str, assessment: dict, recommendations: dict):
     os.makedirs("outputs/reports", exist_ok=True)
     ts = datetime.datetime.now().strftime("%Y%m%d_%H%M")
     md_path = f"outputs/reports/ethics_report_{ts}.md"

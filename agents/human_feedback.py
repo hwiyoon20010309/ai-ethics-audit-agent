@@ -1,7 +1,7 @@
 # agents/human_feedback.py
 from typing import Dict
 
-def get_human_feedback(risk_assessment: Dict) -> str:
+def collect_feedback(risk_assessment: Dict) -> str:
     """
     사용자 피드백 입력 단계
     - 점수가 높은 항목(>=4) 위주로 보여주고 의견을 입력받음
