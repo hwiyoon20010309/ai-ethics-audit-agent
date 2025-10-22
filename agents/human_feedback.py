@@ -1,17 +1,26 @@
-# 사용자 피드백 수집 (콘솔 기반)
 # agents/human_feedback.py
-def collect_feedback(assessment: dict) -> str:
-    """
-    콘솔에서 사람 피드백 한 줄 입력.
-    고위험 항목(>=4) 나열 후 의견 수집.
-    """
-    high = {k:v for k,v in assessment["scores"].items() if v.get("score",3) >= 4}
-    if not high:
-        return ""
+from typing import Dict
 
-    print("\n=== 🤔 Human Feedback 단계 (고위험 항목) ===")
-    for k, v in high.items():
-        print(f"- {k}: {v.get('score')}점 / {v.get('comment')}")
-    print("\n의견을 한 줄로 입력하면 해당 키워드를 RAG 재검색에 반영합니다.")
-    fb = input("피드백> ").strip()
-    return fb
+def get_human_feedback(risk_assessment: Dict) -> str:
+    """
+    사용자 피드백 입력 단계
+    - 점수가 높은 항목(>=4) 위주로 보여주고 의견을 입력받음
+    - 입력받은 텍스트는 RAG 재검색 시 query 확장에 사용됨
+    """
+    print("\n⚠️ 일부 항목의 윤리 리스크 점수가 높게 평가되었습니다.")
+    print("다음 항목은 우선적으로 검토가 필요합니다:\n")
+
+    for key, value in risk_assessment.items():
+        score = value.get("score", 0)
+        comment = value.get("comment", "")
+        if score >= 4:
+            print(f" - [{key}] 점수: {score} → {comment}")
+
+    print("\n💬 개선 또는 보완이 필요하다고 생각되는 부분을 간단히 입력하세요.")
+    feedback = input("입력: ").strip()
+
+    if not feedback:
+        feedback = "No additional feedback provided."
+
+    print(f"\n🧩 피드백 수집 완료 → '{feedback}'\n")
+    return feedback

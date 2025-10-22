@@ -1,58 +1,51 @@
-# 윤리 리스크 평가 및 스코어 산출
 # agents/risk_evaluator.py
-import json
-from statistics import mean
-from langchain_openai import ChatOpenAI
+from openai import OpenAI
+import os
+from dotenv import load_dotenv
 
-CATEGORIES = [
-    "공정성","편향성","투명성","설명가능성","책임성",
-    "프라이버시","안전성","사회적 영향","지속가능성","인간 감독"
-]
+load_dotenv()
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+client = OpenAI(api_key=OPENAI_API_KEY)
 
-def evaluate_risks(service_profile: dict, guideline_context: dict) -> dict:
+def evaluate_risks(policy_context: str, feedback: str = None):
     """
-    guideline_context: {query:[{source,content},...]}
-    return:
-    {
-      "scores": {category: {"score": int, "comment":"...", "references":[...]}, ...},
-      "total_score": float
-    }
+    RAG 문맥 기반 윤리 리스크 평가
+    - feedback이 있으면 평가 prompt에 반영하여 재평가
     """
-    llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.1)
+    base_prompt = (
+        "다음은 AI 윤리 가이드라인 문맥입니다.\n"
+        "이 내용을 바탕으로 각 항목(공정성, 편향성, 투명성, 설명가능성, 프라이버시 등)에 대해 "
+        "1~5점으로 평가하고, 간단한 코멘트를 제공하세요.\n"
+    )
 
-    # 컨텍스트 문자열 생성(근거 인용 포함)
-    ctx_lines = []
-    for k, lst in guideline_context.items():
-        for it in lst:
-            ctx_lines.append(f"[{k}] ({it['source']}) {it['content'][:600]}")
-    ctx = "\n\n".join(ctx_lines[:12])  # 과다 컨텍스트 방지
+    if feedback:
+        base_prompt += f"\n사용자 피드백: {feedback}\n"
+        print("💡 사용자 피드백을 반영한 재평가 수행 중...")
 
-    prompt = f"""
-[국제 가이드라인 근거 문단]
-{ctx}
+    prompt = f"{base_prompt}\n=== 문맥 ===\n{policy_context[:4000]}"
 
-[서비스 개요]
-{json.dumps(service_profile, ensure_ascii=False)}
+    response = client.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=[{"role": "user", "content": prompt}],
+        temperature=0.4
+    )
 
-위 근거를 기준으로, 아래 10개 윤리 항목에 대해
-1(낮은 리스크)~5(높은 리스크)로 평가하고 코멘트를 작성하세요.
-JSON만 출력:
-{{
-  "scores": {{
-    "공정성": {{"score": 1-5, "comment": "...", "references": ["문서/조항 요약 1", "..."]}},
-    "편향성": {{...}},
-    ...
-  }}
-}}
-"""
-    res = llm.invoke(prompt)
-    try:
-        data = json.loads(res.content)
-        scores = data.get("scores", {})
-    except Exception:
-        # 최소 fallback
-        scores = {c: {"score": 3, "comment": "기준 부족으로 기본 점수", "references": []} for c in CATEGORIES}
+    result = response.choices[0].message.content
+    return parse_evaluation(result)
 
-    # total_score는 보수적으로 "최댓값" 또는 "평균" 중 택1. 여기선 최댓값.
-    total = max([v.get("score", 3) for v in scores.values()] + [3])
-    return {"scores": scores, "total_score": total}
+def parse_evaluation(result_text: str):
+    """
+    단순 텍스트 파서: LLM 출력 → dict 변환
+    """
+    import re
+    assessment = {}
+    lines = result_text.strip().split("\n")
+    for line in lines:
+        match = re.match(r"(\w+)\s*[:\-]\s*(\d(?:\.\d)?)", line)
+        if match:
+            key = match.group(1).strip()
+            score = float(match.group(2))
+            assessment[key] = {"score": score, "comment": line}
+    if not assessment:
+        assessment["Summary"] = {"score": 0, "comment": result_text}
+    return assessment
