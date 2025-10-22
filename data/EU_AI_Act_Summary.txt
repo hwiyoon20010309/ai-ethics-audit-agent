@@ -1,8 +1,0 @@
-Article 10 — Data Governance
-High-risk AI systems shall be trained using datasets that are relevant, representative, free of errors and complete.
-
-Article 13 — Transparency and Provision of Information
-AI systems must be sufficiently transparent to enable users to interpret the system's output and use it appropriately.
-
-Article 14 — Human Oversight
-AI systems shall be designed to allow for effective human oversight throughout their lifecycle.
