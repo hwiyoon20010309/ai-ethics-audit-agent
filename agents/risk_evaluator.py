@@ -53,18 +53,37 @@ def evaluate_risks(state):
 
 
 def _parse_evaluation(result_text: str):
-    """LLM 출력 결과를 dict 형태로 파싱"""
+    """LLM 출력 결과를 dict 형태로 파싱 (Markdown, 번호, 별표, 잡음 줄 무시)"""
     assessment = {}
     lines = result_text.strip().split("\n")
 
     for line in lines:
-        match = re.match(r"(\w+)\s*[:\-]\s*(\d(?:\.\d)?)", line)
+        clean_line = line.strip()
+
+        # ① "점수:" "평균:" "Summary" 등 불필요한 줄은 건너뜀
+        if not clean_line or any(x in clean_line for x in ["점수:", "평균", "Summary", "총점", "평가"]):
+            continue
+
+        # ② Markdown 기호 제거 (###, ** 등)
+        clean_line = re.sub(r"[*#]+", "", clean_line)
+        clean_line = re.sub(r"^\s*\d+\.\s*", "", clean_line)  # "1. ", "2." 제거
+
+        # ③ "공정성 (Fairness): 4점" 또는 "Privacy: 3/5" 등 인식
+        match = re.search(
+            r"([가-힣A-Za-z\s\(\)]+)\s*[:\-]?\s*(\d+(?:\.\d+)?)(?:\s*/\s*[1-5]|점)?",
+            clean_line
+        )
         if match:
             key = match.group(1).strip()
             score = float(match.group(2))
-            assessment[key] = {"score": score, "comment": line}
+            assessment[key] = {"score": score, "comment": clean_line}
 
+    # ④ 아무 항목도 잡히지 않으면 Summary로 저장
     if not assessment:
-        assessment["Summary"] = {"score": 0, "comment": result_text}
+        assessment["Summary"] = {"comment": result_text}
 
     return assessment
+
+
+
+

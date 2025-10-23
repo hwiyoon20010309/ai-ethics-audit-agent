@@ -117,11 +117,11 @@ D --> E["리스크 요인 추출기 (RiskFactorExtractor)"]
 E --> F["가이드라인 검색 (RAG Retriever)"]
 F --> G["리스크 평가 (RiskEvaluator)"]
 
-G -->|High Risk ≥ 4| H["개선안 제안 (RecommendationGenerator)"]
+G -->|High Risk ≥ 3| H["개선안 제안 (RecommendationGenerator)"]
 H --> I["Human Feedback Agent (검증 및 재평가 루프)"]
 I --> F["RAG 재검색"]
 
-G -->|Low Risk < 4| J["결과 요약 및 리포트 (ReportBuilder)"]
+G -->|Low Risk < 3| J["결과 요약 및 리포트 (ReportBuilder)"]
 J --> K["최종 결과 (PDF / MD)"]
 ```
 

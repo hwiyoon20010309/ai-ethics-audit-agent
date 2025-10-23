@@ -82,11 +82,20 @@ def print_risk_summary_table(title: str, assessment: dict):
         rows.append((k, s, c))
 
     rows.sort(key=lambda x: (x[1] is None, -(x[1] or 0)))
+
     for name, score, comment in rows:
-        score_txt = "-" if score is None else (f"{score:.1f}" if isinstance(score, float) else str(score))
+        # ⚠️ 바로 여기에 아래 코드로 교체하세요 👇
+        score_txt = "-"
+        if score is not None:
+            try:
+                score_txt = f"{float(score):.1f}"
+            except Exception:
+                score_txt = str(score)
+
         print(f"{name:<28} {score_txt:<6} {comment}")
 
     print("-" * 70)
+
 
 
 # -------------------------------------------------------------------
@@ -170,7 +179,7 @@ def main():
     # ✅ 콘솔에 전체 점수 출력
     print_risk_summary_table("초기 평가", state.get("risk_assessment", {}))
 
-    # === 7️⃣ 고위험 항목 표시 ===
+    # === 7️⃣ 평균 리스크 계산 ===
     ra = state.get("risk_assessment", {}) or {}
 
     def _score_of(v):
@@ -178,20 +187,16 @@ def main():
             return _coerce_score(v.get("score", None))
         return _coerce_score(v)
 
-    high_risk = {}
-    for k, v in ra.items():
-        s = _score_of(v)
-        if s is not None and s >= 4:
-            if not isinstance(v, dict):
-                v = {"score": s, "comment": ""}
-            high_risk[k] = v
+    scores = [_score_of(v) for v in ra.values() if _score_of(v) is not None]
+    avg_score = round(sum(scores) / len(scores), 2) if scores else 0.0
 
-    if high_risk:
-        print("\n⚠️ 일부 항목의 윤리 리스크 점수가 높게 평가되었습니다.")
-        for k, v in high_risk.items():
-            print(f"   - {k}: {v['score']}점 ({v['comment']})")
+    print(f"\n📊 평균 윤리 리스크 점수: {avg_score:.2f}")
 
-        # === 8️⃣ 사용자 피드백 수집 ===
+    # === 8️⃣ 피드백 루프 조건 ===
+    if avg_score >= 3:   # ✅ 평균 3 이상일 때만 루프 실행
+        print(f"⚠️ 평균 리스크 {avg_score:.2f} (중~고위험) — 휴먼 피드백 루프 시작")
+
+        # === 사용자 피드백 수집 ===
         state["human_feedback"] = collect_feedback(state["risk_assessment"])
 
         if state["human_feedback"]:
@@ -206,9 +211,10 @@ def main():
                 print(f"⚠️ 피드백 반영 중 오류 발생: {e}")
                 final_assessment = ra
     else:
-        print("\n✅ 모든 윤리 항목이 허용 범위 내에 있습니다. 피드백 루프를 생략합니다.")
+        print(f"✅ 평균 리스크 {avg_score:.2f} (안전) — 피드백 루프 생략")
         state["human_feedback"] = None
         final_assessment = ra
+
 
     # === 9️⃣ 개선 권고안 생성 (최종 평가 기준) ===
     state["recommendations"] = generate_recommendations(
