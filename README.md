@@ -128,8 +128,34 @@ J --> K["최종 결과 (PDF / MD)"]
 ---
 
 ## 📂 Directory Structure
-
-<pre> ```bash ai_ethics_audit_agent/ ├── agents/ │ ├── service_crawler.py # Tavily 웹 크롤링 + 요약 │ ├── service_analyzer.py # 서비스 구조 분석 │ ├── type_classifier.py # AI 유형 자동 분류 │ ├── risk_factor_extractor.py # 윤리 리스크 요인 추출 │ ├── rag_retriever.py # Chroma 기반 RAG 검색 │ ├── risk_evaluator.py # 윤리 리스크 점수화 │ ├── recommendation_generator.py # 개선안 제안 │ ├── human_feedback.py # 사용자 피드백 수집 │ └── report_builder.py # PDF/Markdown 보고서 생성 │ ├── tools/ │ └── embed_guidelines.py # EU/OECD/UNESCO PDF 임베딩 │ ├── data/ │ ├── EU_AI_Act.pdf │ ├── OECD_AI_Principles.pdf │ ├── UNESCO_AI_Ethics.pdf │ └── vectorstore/ # ChromaDB 저장소 │ ├── outputs/ │ ├── reports/ │ └── logs/ │ ├── main.py # 메인 워크플로우 (크롤링 → 평가 → 리포트) └── README.md ``` </pre>
-
+```
+ai_ethics_audit_agent/
+├── agents/
+│   ├── service_crawler.py          # Tavily 웹 크롤링 + 요약
+│   ├── service_analyzer.py         # 서비스 구조 분석
+│   ├── type_classifier.py          # AI 유형 자동 분류
+│   ├── risk_factor_extractor.py    # 윤리 리스크 요인 추출
+│   ├── rag_retriever.py            # Chroma 기반 RAG 검색
+│   ├── risk_evaluator.py           # 윤리 리스크 점수화
+│   ├── recommendation_generator.py # 개선안 제안
+│   ├── human_feedback.py           # 사용자 피드백 수집
+│   └── report_builder.py           # PDF/Markdown 보고서 생성
+│
+├── tools/
+│   └── embed_guidelines.py         # EU/OECD/UNESCO PDF 임베딩
+│
+├── data/
+│   ├── EU_AI_Act.pdf
+│   ├── OECD_AI_Principles.pdf
+│   ├── UNESCO_AI_Ethics.pdf
+│   └── vectorstore/                # ChromaDB 저장소
+│
+├── outputs/
+│   ├── reports/
+│   └── logs/
+│
+├── main.py                         # 메인 워크플로우 (크롤링 → 평가 → 리포트)
+└── README.md
+```
 
 ---
