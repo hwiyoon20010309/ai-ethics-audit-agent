@@ -106,7 +106,7 @@ LangGraph 기반 멀티 에이전트 시스템을 통해 **AI 서비스 유형(�
 
 ---
 
-## 📊 Architecture
+## 📊 Architecture (Mermaid Diagram)
 
 ```mermaid
 graph TD
@@ -123,6 +123,7 @@ I --> F["RAG 재검색"]
 
 G -->|Low Risk < 4| J["결과 요약 및 리포트 (ReportBuilder)"]
 J --> K["최종 결과 (PDF / MD)"]
+```
 
 ---
 
@@ -155,5 +156,6 @@ ai_ethics_audit_agent/
 │
 ├── main.py                         # 메인 워크플로우 (크롤링 → 평가 → 리포트)
 └── README.md
+
 
 ---
