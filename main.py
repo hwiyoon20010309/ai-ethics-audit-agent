@@ -129,23 +129,27 @@ def main():
     # === 7️⃣ 고위험 항목 표시 ===
     ra = state.get("risk_assessment", {}) or {}
     high_risk = {k: v for k, v in ra.items() if isinstance(v, dict) and v.get("score", 0) >= 4}
+
     if high_risk:
         print("\n⚠️ 일부 항목의 윤리 리스크 점수가 높게 평가되었습니다.")
         for k, v in high_risk.items():
             print(f"   - {k}: {v['score']}점 ({v['comment']})")
-    else:
-        print("\n✅ 모든 윤리 항목이 허용 범위 내에 있습니다.")
 
-    # === 8️⃣ 사용자 피드백 수집 및 반영 ===
-    state["human_feedback"] = collect_feedback(state["risk_assessment"])
-    if state["human_feedback"]:
-        print(f"\n🧩 피드백 수집 완료 → '{state['human_feedback']}'")
-        print("\n🔁 피드백 기반 재검색 및 재평가 수행 중...")
-        try:
-            state = retrieve_guidelines(state)
-            state = evaluate_risks(state)
-        except Exception as e:
-            print(f"⚠️ 피드백 반영 중 오류 발생: {e}")
+        # === 8️⃣ 사용자 피드백 수집 ===
+        state["human_feedback"] = collect_feedback(state["risk_assessment"])
+
+        if state["human_feedback"]:
+            print(f"\n🧩 피드백 수집 완료 → '{state['human_feedback']}'")
+            print("\n🔁 피드백 기반 재검색 및 재평가 수행 중...")
+            try:
+                state = retrieve_guidelines(state)
+                state = evaluate_risks(state)
+            except Exception as e:
+                print(f"⚠️ 피드백 반영 중 오류 발생: {e}")
+    else:
+        print("\n✅ 모든 윤리 항목이 허용 범위 내에 있습니다. 피드백 루프를 생략합니다.")
+        state["human_feedback"] = None
+
 
     # === 9️⃣ 개선 권고안 생성 ===
     # ❗️ [수정됨] state 전체를 덮어쓰는 대신, state["recommendations"]에 할당
@@ -155,20 +159,39 @@ def main():
         state["policy_context"]                           #    수정되지 않았을
     )
 
-    # === 🔟 리포트 생성 ===
+    # === 🔟 리포트 생성 (피드백 반영 비교 포함) ===
     if not isinstance(state.get("service_info"), dict):
         print("⚠️ service_info가 문자열로 변환되어 복구 중...")
         state["service_info"] = normalize_service_info(state["service_info"], state["service_name"])
 
     try:
+        # ✅ ① 초기 평가 결과 저장
+        initial_assessment = state.get("risk_assessment", {})
+        feedback = state.get("human_feedback")
+
+        # ✅ ② 피드백이 존재하면 재검색 + 재평가 수행
+        if feedback:
+            print("\n🔁 사용자 피드백을 반영한 재평가를 수행합니다...")
+            state = retrieve_guidelines(state)
+            final_state = evaluate_risks(state)
+            final_assessment = final_state.get("risk_assessment", {})
+        else:
+            final_assessment = initial_assessment
+
+        # ✅ ③ 보고서 생성 (비교 포함)
         generate_report(
             state["service_info"],
-            state["risk_assessment"],
-            state.get("recommendations", "개선 권고안 없음")
+            initial_assessment,
+            final_assessment,
+            state.get("recommendations", "개선 권고안 없음"),
+            feedback
         )
+
         print("\n🎯 윤리성 리스크 진단 완료 — 결과 보고서가 outputs/reports 폴더에 생성되었습니다.\n")
+
     except Exception as e:
         print(f"🚨 보고서 생성 중 오류 발생: {e}")
+
 
 
 if __name__ == "__main__":

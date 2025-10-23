@@ -11,24 +11,29 @@ from reportlab.pdfbase import ttfonts
 from reportlab.pdfbase.pdfmetrics import registerFont
 import re
 
-# --- [수정] 폰트 설정 (나눔고딕) ---
-# 프로젝트 내 'fonts' 폴더에서 폰트를 로드합니다.
+# --- [수정됨] 폰트 설정 (나눔고딕) ---
+# 프로젝트 내 report_builder.py 파일 기준으로 절대경로 설정
 try:
-    FONT_DIR = "fonts" 
+    # 현재 파일(report_builder.py)의 실제 디렉터리 경로
+    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+    FONT_DIR = os.path.join(BASE_DIR, "fonts")
+
     REGULAR_FONT_PATH = os.path.join(FONT_DIR, "NanumGothic-Regular.ttf")
     BOLD_FONT_PATH = os.path.join(FONT_DIR, "NanumGothic-Bold.ttf")
+
+    # print(f"[DEBUG] 폰트 경로 확인: {REGULAR_FONT_PATH}")  # ← 디버깅용, 나중에 지워도 됨
 
     if os.path.exists(REGULAR_FONT_PATH) and os.path.exists(BOLD_FONT_PATH):
         registerFont(ttfonts.TTFont('NanumGothic', REGULAR_FONT_PATH))
         registerFont(ttfonts.TTFont('NanumGothicBold', BOLD_FONT_PATH))
-        
+
         # 기본 스타일시트 로드
         styles = getSampleStyleSheet()
-        
-        # [수정] 더 세분화된 스타일 정의
+
+        # [개선] 스타일 세분화
         styles.add(ParagraphStyle(
-            name='TitleKor', 
-            parent=styles['Title'], 
+            name='TitleKor',
+            parent=styles['Title'],
             fontName='NanumGothicBold',
             fontSize=24,
             alignment=TA_CENTER,
@@ -43,39 +48,76 @@ try:
             spaceAfter=6
         ))
         styles.add(ParagraphStyle(
-            name='Heading1Kor', 
-            parent=styles['h1'], 
+            name='Heading1Kor',
+            parent=styles['h1'],
             fontName='NanumGothicBold',
             fontSize=16,
             spaceBefore=12,
             spaceAfter=8,
-            textColor=HexColor('#1A237E') # 진한 파란색
+            textColor=HexColor('#1A237E')
         ))
         styles.add(ParagraphStyle(
-            name='NormalKor', 
-            parent=styles['Normal'], 
+            name='NormalKor',
+            parent=styles['Normal'],
             fontName='NanumGothic',
             fontSize=10,
-            leading=14, # 줄 간격
-            alignment=TA_LEFT, 
+            leading=14,
+            alignment=TA_LEFT,
             spaceAfter=6
         ))
         styles.add(ParagraphStyle(
-            name='CodeKor', 
-            parent=styles['Code'], 
-            fontName='NanumGothic', # 코드도 나눔고딕 사용 (고정폭 폰트가 있다면 더 좋음)
+            name='CodeKor',
+            parent=styles['Code'],
+            fontName='NanumGothic',
             fontSize=9,
             leading=12,
             alignment=TA_LEFT,
-            backColor=HexColor('#F5F5F5'), # 연한 회색 배경
+            backColor=HexColor('#F5F5F5'),
             borderPadding=(5, 5, 5, 5),
             leftIndent=6,
             rightIndent=6,
             spaceBefore=4,
             spaceAfter=10
         ))
+        styles.add(ParagraphStyle(
+        name='QuoteKor',
+        parent=styles['Normal'],
+        fontName='NanumGothicItalic' if 'NanumGothicItalic' in styles else 'NanumGothic',
+        fontSize=10,
+        leading=14,
+        leftIndent=12,
+        rightIndent=12,
+        textColor=HexColor('#424242'),
+        backColor=HexColor('#FAFAFA'),
+        borderPadding=(4, 4, 4, 4),
+        spaceBefore=6,
+        spaceAfter=6,
+        italic=True
+        ))
+
+        styles.add(ParagraphStyle(
+            name='FooterKor',
+            parent=styles['Normal'],
+            fontName='NanumGothic',
+            fontSize=8,
+            alignment=TA_CENTER,
+            textColor=HexColor('#9E9E9E'),
+            spaceBefore=12,
+        ))
+
     else:
-        raise FileNotFoundError("NanumGothic 폰트 파일을 'fonts' 폴더에서 찾을 수 없습니다.")
+        raise FileNotFoundError(f"❌ NanumGothic 폰트를 찾을 수 없습니다. ({REGULAR_FONT_PATH})")
+
+except Exception as e:
+    print(f"⚠️ 폰트 로드 실패: {e}")
+    print("→ 'fonts/NanumGothic-Regular.ttf'와 'fonts/NanumGothic-Bold.ttf' 파일이 필요합니다.")
+    styles = getSampleStyleSheet()
+    styles.add(ParagraphStyle(name='Heading1Kor', parent=styles['Title']))
+    styles.add(ParagraphStyle(name='MetaInfo', parent=styles['Normal']))
+    styles.add(ParagraphStyle(name='Heading1Kor', parent=styles['h1']))
+    styles.add(ParagraphStyle(name='NormalKor', parent=styles['Normal']))
+    styles.add(ParagraphStyle(name='CodeKor', parent=styles['Code']))
+
 
 except Exception as e:
     print(f"⚠️ 폰트 로드 실패: {e}. PDF 한글이 깨질 수 있습니다.")
@@ -132,48 +174,101 @@ def header_footer(canvas, doc):
     canvas.restoreState()
 
 
-def generate_report(service_info: dict, risk_assessment: dict, recommendations: str):
+def generate_report(service_info: dict,
+                    initial_assessment: dict,
+                    final_assessment: dict,
+                    recommendations: str,
+                    feedback: str = None):
     """
-    [수정됨] main.py에서 전달하는 3개의 인수를 받도록 수정
-    1. service_info (dict): 서비스 정보
-    2. risk_assessment (dict): 평가 결과
-    3. recommendations (str): 권고안 (LLM이 생성한 문자열)
+    개선된 보고서 생성기
+    - initial_assessment: 최초 평가 결과
+    - final_assessment: 피드백 반영 후 재평가 결과
+    - feedback: 사용자가 입력한 피드백 내용
     """
     os.makedirs("outputs/reports", exist_ok=True)
     ts = datetime.datetime.now().strftime("%Y%m%d_%H%M")
     service_name = service_info.get("name", "UnknownService").replace(" ", "_")
-    
     md_path = f"outputs/reports/report_{service_name}_{ts}.md"
     pdf_path = f"outputs/reports/report_{service_name}_{ts}.pdf"
 
-    # --- 데이터 추출 ---
-    service_name_display = service_info.get("name", "N/A")
-    service_type = service_info.get("type", "N/A")
-    service_purpose = service_info.get("purpose", "N/A")
-    report_date = datetime.datetime.now().strftime('%Y-%m-%d %H:%M')
-
-    # --- 1. Markdown 리포트 생성 (기존과 동일) ---
+    # Markdown 버전 생성
     try:
         with open(md_path, "w", encoding="utf-8") as f:
-            f.write("# AI 윤리 리스크 진단 보고서\n\n")
-            f.write(f"**진단 대상**: {service_name_display}\n")
-            f.write(f"**진단 일시**: {report_date}\n\n")
-            
-            f.write("## 1. 서비스 개요\n\n")
-            f.write(f"- **서비스 유형**: {service_type}\n")
-            f.write(f"- **주요 목적**: {service_purpose}\n\n")
-            
-            f.write("## 2. 윤리 리스크 평가 (최종)\n\n")
-            f.write("```json\n" + _pp(risk_assessment) + "\n```\n\n")
-            
-            f.write("## 3. 종합 개선 권고안\n\n")
-            f.write(str(recommendations))
-            f.write("\n")
-            
-        print(f"📝 Markdown 리포트 생성 완료: {md_path}")
+            f.write(f"# 🤖 AI 윤리 리스크 진단 보고서\n\n")
+            f.write(f"**진단 대상:** {service_info.get('name')}\n")
+            f.write(f"**진단 일시:** {datetime.datetime.now():%Y-%m-%d %H:%M}\n\n")
+            f.write("---\n")
+            f.write("## 📘 서비스 개요\n")
+            f.write(f"- 유형: {service_info.get('type')}\n")
+            f.write(f"- 목적: {service_info.get('purpose')}\n\n")
 
+            f.write("## 📊 초기 윤리 리스크 평가\n")
+            f.write("| 항목 | 점수 | 설명 |\n|------|------|------|\n")
+            for k, v in initial_assessment.items():
+                f.write(f"| {k} | {v.get('score','-')} | {v.get('comment','')} |\n")
+            f.write("\n")
+
+            if feedback:
+                f.write("## 💬 사용자 피드백\n")
+                f.write(f"> {feedback}\n\n")
+
+            f.write("## 🔁 피드백 반영 후 재평가 결과\n")
+            f.write("| 항목 | 변경 전 | 변경 후 | 차이 |\n|------|------|------|------|\n")
+            for k, v in final_assessment.items():
+                old = initial_assessment.get(k, {}).get("score", "-")
+                new = v.get("score", "-")
+                delta = (new - old) if isinstance(new, (int, float)) and isinstance(old, (int, float)) else "-"
+                f.write(f"| {k} | {old} | {new} | {delta:+} |\n")
+            f.write("\n")
+
+            f.write("## 💡 최종 개선 권고안\n\n")
+            f.write(recommendations + "\n")
+        print(f"📝 Markdown 리포트 생성 완료: {md_path}")
     except Exception as e:
-        print(f"🚨 Markdown 리포트 생성 중 오류 발생: {e}")
+        print(f"🚨 Markdown 생성 중 오류: {e}")
+
+    # PDF 버전
+    doc = SimpleDocTemplate(pdf_path, pagesize=A4,
+                            leftMargin=inch/2, rightMargin=inch/2,
+                            topMargin=25*mm, bottomMargin=25*mm)
+
+    elems = [
+        Paragraph("AI 윤리 리스크 진단 보고서", styles["TitleKor"]),
+        Spacer(1, 6),
+        Paragraph(f"<b>진단 대상:</b> {service_info.get('name','N/A')}", styles["MetaInfo"]),
+        Paragraph(f"<b>진단 일시:</b> {datetime.datetime.now():%Y-%m-%d %H:%M}", styles["MetaInfo"]),
+        Spacer(1, 10),
+
+        Paragraph("Ⅰ. 서비스 개요", styles["Heading1Kor"]),
+        Paragraph(f"<b>서비스 유형:</b> {service_info.get('type','N/A')}", styles["NormalKor"]),
+        Paragraph(f"<b>주요 목적:</b> {_format_text_for_pdf(service_info.get('purpose',''))}", styles["NormalKor"]),
+        Spacer(1, 8),
+
+        Paragraph("Ⅱ. 초기 윤리 리스크 평가", styles["Heading1Kor"]),
+        Preformatted(_pp(initial_assessment), styles["CodeKor"]),
+    ]
+
+    if feedback:
+        elems += [
+            Paragraph("Ⅲ. 사용자 피드백", styles["Heading1Kor"]),
+            Paragraph(_format_text_for_pdf(feedback), styles["QuoteKor"]),
+        ]
+
+    elems += [
+        Paragraph("Ⅳ. 피드백 반영 후 재평가 결과", styles["Heading1Kor"]),
+        Preformatted(_pp(final_assessment), styles["CodeKor"]),
+        Spacer(1, 8),
+
+        Paragraph("Ⅴ. 최종 개선 권고안", styles["Heading1Kor"]),
+        Paragraph(_format_text_for_pdf(recommendations), styles["NormalKor"]),
+        Spacer(1, 10),
+
+        Paragraph("※ 본 보고서는 Human-in-the-loop 기반 AI 윤리 평가 결과입니다.", styles["FooterKor"])
+    ]
+
+    doc.build(elems, onFirstPage=header_footer, onLaterPages=header_footer)
+    print(f"📄 PDF 리포트 생성 완료: {pdf_path}")
+ 
 
     # --- 2. PDF 리포트 생성 [수정] ---
     try:

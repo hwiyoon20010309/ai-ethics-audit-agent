@@ -25,7 +25,7 @@ def embed_guideline_pdfs():
         sys.exit(1)
 
     pdf_files = [
-        os.path.join(DATA_DIR, "EU_AI_Act.pdf"),
+        os.path.join(DATA_DIR, "EU_AI_Act_Condensed_Summary.pdf"),
         os.path.join(DATA_DIR, "OECD_AI_Principles.pdf"),
         os.path.join(DATA_DIR, "UNESCO_AI_Ethics.pdf"),
     ]
